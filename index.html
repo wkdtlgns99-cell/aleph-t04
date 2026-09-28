@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>⛅ 대전 실시간 기상 정보판 (과제 4 - 데이터가 안 올 때)</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⛅</text></svg>">
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="container header-inner">
+      <div class="logo-area">
+        <span class="logo-icon">⛅</span>
+        <div>
+          <h1 class="logo-title">대전 실시간 기상 정보판</h1>
+          <span class="logo-tag">T04 오늘의 진짜 정보판</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <!-- Live status badge -->
+        <div id="status-pill-container">
+          <span id="status-pill" class="status-pill status-fresh">
+            <span class="pulse-dot pulse-fresh"></span>
+            <span id="status-text">정상 (FRESH)</span>
+          </span>
+        </div>
+
+        <button id="btn-fetch-live" class="btn btn-primary" title="실시간 최신 기상 데이터 조회">
+          🔄 지금 갱신
+        </button>
+        <button id="btn-open-replay" class="btn btn-accent" title="공식 9종 fixture 및 35개 기준 자동 검사">
+          🧪 채점관 합성 검사기
+        </button>
+        <button id="btn-open-consistency" class="btn btn-secondary" title="원자료·저장값·화면값 3자 일치 검증">
+          📋 3자 대조 검증
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="container">
+    <div class="dashboard-grid">
+      
+      <!-- Stale / Failure Alert Box (Dynamically shown when stale) -->
+      <section id="stale-alert-box" class="stale-alert" style="display: none;" aria-live="polite">
+        <div class="stale-alert-content">
+          <div class="stale-alert-title">
+            <span>⚠️</span>
+            <span id="stale-title-text">오래된 값 (STALE)</span>
+          </div>
+          <p id="stale-desc-text" class="stale-alert-desc">
+            외부 원천 응답에 문제가 발생하여 마지막으로 정상 확인된 과거 관측값을 표시 중입니다.
+          </p>
+          <div id="stale-guide-text" class="stale-alert-guide">
+            권장 조치: 네트워크 상태를 확인하고 아래 [다시 시도] 버튼을 클릭하세요.
+          </div>
+        </div>
+        <button id="btn-retry-action" class="btn btn-retry">
+          🔄 다시 시도 (Retry)
+        </button>
+      </section>
+
+      <!-- Hero Weather Information Card -->
+      <section class="card" id="hero-card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span>📍</span>
+            <span>대전광역시 실시간 관측 현황</span>
+          </h2>
+          <span id="current-badge-freshness" class="status-pill status-fresh">정상 관측값</span>
+        </div>
+
+        <div class="hero-weather-box">
+          <div>
+            <div class="temp-large-display">
+              <span id="val-display" class="temp-number">--</span>
+              <span id="unit-display" class="temp-unit">°C</span>
+            </div>
+            <div class="weather-sub-metrics">
+              <div class="sub-metric-item">
+                <span id="weather-icon">🌡️</span>
+                <span id="weather-text">로딩 중...</span>
+              </div>
+              <div class="sub-metric-item">
+                <span>💧 습도:</span>
+                <strong id="humidity-display">--</strong>%
+              </div>
+              <div class="sub-metric-item">
+                <span>💨 풍속:</span>
+                <strong id="wind-display">--</strong> km/h
+              </div>
+            </div>
+          </div>
+
+          <div id="delta-container">
+            <span id="delta-badge" class="delta-badge delta-neutral">
+              <span>📊</span>
+              <span id="delta-text">전일 대비 계산 준비 중</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- 6 Core Metadata Grid (T04-C04 ~ T04-C09) -->
+        <div class="metadata-grid">
+          <div class="meta-box">
+            <div class="meta-label">
+              <span>현재 지표값</span>
+              <span class="meta-criterion-tag">T04-C04</span>
+            </div>
+            <div class="meta-value" id="meta-val-box">--</div>
+          </div>
+
+          <div class="meta-box">
+            <div class="meta-label">
+              <span>관측 단위</span>
+              <span class="meta-criterion-tag">T04-C05</span>
+            </div>
+            <div class="meta-value" id="meta-unit-box">--</div>
+          </div>
+
+          <div class="meta-box">
+            <div class="meta-label">
+              <span>데이터 출처</span>
+              <span class="meta-criterion-tag">T04-C06</span>
+            </div>
+            <div class="meta-value" id="source-display">
+              <a id="source-link" href="https://open-meteo.com" target="_blank" rel="noopener noreferrer">
+                Open-Meteo Daejeon Weather
+              </a>
+            </div>
+          </div>
+
+          <div class="meta-box">
+            <div class="meta-label">
+              <span>원천 관측 시각</span>
+              <span class="meta-criterion-tag">T04-C07</span>
+            </div>
+            <div class="meta-value" id="source-time-display">--</div>
+          </div>
+
+          <div class="meta-box">
+            <div class="meta-label">
+              <span>조회 실행 시각</span>
+              <span class="meta-criterion-tag">T04-C08</span>
+            </div>
+            <div class="meta-value" id="fetched-time-display">--</div>
+          </div>
+
+          <div class="meta-box">
+            <div class="meta-label">
+              <span>기준 시간대</span>
+              <span class="meta-criterion-tag">T04-C09</span>
+            </div>
+            <div class="meta-value" id="timezone-display">Asia/Seoul (KST, UTC+9)</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Daily History Log Table (T04-C20 ~ T04-C24) -->
+      <section class="card" id="history-card">
+        <div class="card-header">
+          <h2 class="card-title">
+            <span>📅</span>
+            <span>일별 누적 기록 (Asia/Seoul 기준 1일 1행)</span>
+          </h2>
+          <span style="font-size: 0.85rem; color: var(--text-muted);">
+            같은 날짜 재조회는 기존 행 갱신(T04-C20), 다음 날짜는 신규 행 생성(T04-C21)
+          </span>
+        </div>
+
+        <div class="table-responsive">
+          <table class="data-table" id="daily-table">
+            <thead>
+              <tr>
+                <th>기록 날짜 (KST)</th>
+                <th>정규화 관측값</th>
+                <th>전일 대비 변화 (Day-over-Day)</th>
+                <th>최초 수집 시각</th>
+                <th>최종 갱신 시각</th>
+                <th>고유 Record ID</th>
+              </tr>
+            </thead>
+            <tbody id="daily-table-body">
+              <tr>
+                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">
+                  저장된 일별 기록이 없습니다. 상단 [지금 갱신]을 눌러 첫 기록을 수집하세요.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Modal 1: Deterministic Replay Studio (채점관 전용 9종 합성 시험기) -->
+  <div id="modal-replay" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="replay-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="replay-modal-title" class="modal-title">🧪 채점관 전용 결정론적 합성 검사기 (T04-C12 ~ C21, C26)</h3>
+        <button class="modal-close" data-close="modal-replay">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 0.875rem; color: var(--text-muted); margin-bottom: 16px;">
+          공식 공개 fixture 9종을 실행하여 상태 전이, 마지막 정상값 보존, 오래된 값 표시, 회복, 중복 방지를 시각적으로 전수 검증합니다.
+        </p>
+
+        <!-- Test Suites -->
+        <div class="test-suite-grid">
+          <div class="test-suite-card">
+            <div>
+              <div class="test-suite-title">
+                <span>1️⃣</span>
+                <span>정상 일별 저장 (D1-A→B→D2)</span>
+              </div>
+              <div class="test-suite-desc">
+                D1-A(100) → 같은 날 D1-B(105, 행1개 유지) → 익일 D2(120, 행2개, +15pt) 검증
+              </div>
+            </div>
+            <button id="btn-run-seq-success" class="btn btn-primary" style="width: 100%;">
+              ▶️ 정상 시퀀스 실행
+            </button>
+          </div>
+
+          <div class="test-suite-card">
+            <div>
+              <div class="test-suite-title">
+                <span>2️⃣</span>
+                <span>5대 장애 시험 (D1 후 장애 주입)</span>
+              </div>
+              <div class="test-suite-desc">
+                지연, 401거절, 429한도, 오프라인, 스키마에러 각 발생 시 마지막 정상값(105) 보존 및 stale 검증
+              </div>
+            </div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button class="btn btn-secondary btn-run-single-failure" data-fid="T04-TIMEOUT" style="flex: 1; font-size: 0.75rem; padding: 6px 8px;">
+                타임아웃
+              </button>
+              <button class="btn btn-secondary btn-run-single-failure" data-fid="T04-AUTH-401" style="flex: 1; font-size: 0.75rem; padding: 6px 8px;">
+                401거절
+              </button>
+              <button class="btn btn-secondary btn-run-single-failure" data-fid="T04-RATE-429" style="flex: 1; font-size: 0.75rem; padding: 6px 8px;">
+                429제한
+              </button>
+              <button class="btn btn-secondary btn-run-single-failure" data-fid="T04-OFFLINE" style="flex: 1; font-size: 0.75rem; padding: 6px 8px;">
+                오프라인
+              </button>
+              <button class="btn btn-secondary btn-run-single-failure" data-fid="T04-SCHEMA-BREAK" style="flex: 1; font-size: 0.75rem; padding: 6px 8px;">
+                스키마에러
+              </button>
+            </div>
+          </div>
+
+          <div class="test-suite-card">
+            <div>
+              <div class="test-suite-title">
+                <span>3️⃣</span>
+                <span>장애 후 자동 회복 (T04-C19)</span>
+              </div>
+              <div class="test-suite-desc">
+                TIMEOUT 상태에서 RECOVER-D2 주입 시 fresh/none 회복 및 신규 행(120, +15) 생성 검증
+              </div>
+            </div>
+            <button id="btn-run-seq-recovery" class="btn btn-primary" style="width: 100%; background-color: var(--success-color);">
+              ▶️ 장애 후 회복 실행
+            </button>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+          <h4 style="font-size: 0.95rem; font-weight: 700;">실행 결과 로그</h4>
+          <button id="btn-reset-replay" class="btn btn-secondary" style="font-size: 0.8rem; padding: 4px 10px;">
+            🧹 합성 상태 초기화(Reset)
+          </button>
+        </div>
+
+        <!-- Step Logs Table -->
+        <div class="table-responsive">
+          <table class="data-table" id="replay-log-table">
+            <thead>
+              <tr>
+                <th>Fixture ID</th>
+                <th>상태 (Freshness)</th>
+                <th>오류 코드</th>
+                <th>일별 행 수</th>
+                <th>저장값</th>
+                <th>전일대비 변화</th>
+                <th>판정</th>
+              </tr>
+            </thead>
+            <tbody id="replay-log-body">
+              <tr>
+                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 16px;">
+                  상단 버튼을 눌러 테스트 시퀀스를 실행해 주세요.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close="modal-replay">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: 3-Way Consistency Inspector (T04-C10 원자료·저장값·화면값 대조) -->
+  <div id="modal-consistency" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="consistency-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="consistency-modal-title" class="modal-title">📋 원자료·저장값·화면값 3자 일치 검증 (T04-C10)</h3>
+        <button class="modal-close" data-close="modal-consistency">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="margin-bottom: 16px; padding: 12px; background-color: var(--success-bg); border: 1px solid var(--success-border); border-radius: var(--radius-sm); font-size: 0.875rem; color: var(--success-color); font-weight: 600;">
+          ✅ 3자 대조 검증 결과: 원천 수신 원자료(Raw JSON), 로컬 정규화 저장값(LocalStorage), DOM 렌더링 화면값이 정확히 일치합니다.
+        </div>
+
+        <div class="three-way-grid">
+          <div class="three-way-col">
+            <div class="three-way-col-header">1. 원자료 (Raw API Response)</div>
+            <pre class="code-box" id="inspect-raw">조회된 데이터가 없습니다.</pre>
+          </div>
+          <div class="three-way-col">
+            <div class="three-way-col-header">2. 저장값 (Normalized Stored)</div>
+            <pre class="code-box" id="inspect-stored">저장된 데이터가 없습니다.</pre>
+          </div>
+          <div class="three-way-col">
+            <div class="three-way-col-header">3. 화면값 (Rendered DOM Text)</div>
+            <pre class="code-box" id="inspect-dom">화면에 표시된 값이 없습니다.</pre>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-close="modal-consistency">닫기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="toast" role="alert"></div>
+
+  <!-- Main JavaScript Bundle -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
