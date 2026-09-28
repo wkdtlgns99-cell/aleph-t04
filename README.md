@@ -11,7 +11,7 @@
 > ※ 계정 생성, 로그인, 인증, 초대, 비밀번호, OAuth, CAPTCHA 없이 시크릿 창에서 즉시 열람 및 검증 가능합니다 (T04-C01~C02, C29~C33 충족).
 
 ### 2. 소스 저장소 URL (필수)
-- **전체 커밋 고정 URL**: [https://github.com/wkdtlgns99-cell/aleph-t04/commit/PLACEHOLDER_COMMIT_HASH](https://github.com/wkdtlgns99-cell/aleph-t04/commit/PLACEHOLDER_COMMIT_HASH)
+- **전체 커밋 고정 URL**: [https://github.com/wkdtlgns99-cell/aleph-t04/commit/cb8dd1ab23ddb3f280d422fefb01be2033ff4f10](https://github.com/wkdtlgns99-cell/aleph-t04/commit/cb8dd1ab23ddb3f280d422fefb01be2033ff4f10)
 > ※ 소스 저장소의 전체 소스 상태를 다시 받을 수 있는 40자리 소문자 full commit hash 고정 URL이 제공됩니다 (T04-C35 충족).
 
 ---
